@@ -1826,13 +1826,11 @@ SCErr meth_s_noid(World* inWorld, int inSize, char* inData, ReplyAddress* inRepl
 SCErr meth_s_noid(World* inWorld, int inSize, char* inData, ReplyAddress* inReply) {
     sc_msg_iter msg(inSize, inData);
     while (msg.remain()) {
-        Graph* graph = Msg_GetGraph(inWorld, msg);
-        if (!graph)
+        Node* node = Msg_GetNode(inWorld, msg);
+        if (!node)
             continue;
-
-        Node_RemoveID(&graph->mNode);
+        Node_RemoveID(node);
     }
-
     return kSCErr_None;
 }
 

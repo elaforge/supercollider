@@ -98,29 +98,42 @@ void Node_Remove(Node* s) {
     s->mParent = nullptr;
 }
 
+// Unregister the node ID.  If it's a group, unregister all the graph nodes
+// inside.
 void Node_RemoveID(Node* inNode) {
-    if (inNode->mID == 0)
-        return; // failed
+    if (inNode->mIsGroup) {
+        Group* inGroup = (Group*) inNode;
+        Node* child = inGroup->mHead;
+        while (child) {
+            Node* next = child->mNext;
+            if (child->mID > 0)
+                Node_RemoveID(child);
+            child = next;
+        }
+    } else {
+        if (inNode->mID == 0)
+            return; // failed
 
-    World* world = inNode->mWorld;
-    if (!World_RemoveNode(world, inNode)) {
-        int err = kSCErr_Failed; // shouldn't happen..
-        throw err;
+        World* world = inNode->mWorld;
+        if (!World_RemoveNode(world, inNode)) {
+            int err = kSCErr_Failed; // shouldn't happen..
+            throw err;
+        }
+
+        HiddenWorld* hw = world->hw;
+        int id = hw->mHiddenID = (hw->mHiddenID - 8) | 0x80000000;
+        inNode->mID = id;
+        inNode->mHash = Hash(id);
+        if (!World_AddNode(world, inNode)) {
+            scprintf("mysterious failure in Node_RemoveID\n");
+            Node_Delete(inNode);
+            // enums are uncatchable. must throw an int.
+            int err = kSCErr_Failed; // shouldn't happen..
+            throw err;
+        }
+
+        // inWorld->hw->mRecentID = id;
     }
-
-    HiddenWorld* hw = world->hw;
-    int id = hw->mHiddenID = (hw->mHiddenID - 8) | 0x80000000;
-    inNode->mID = id;
-    inNode->mHash = Hash(id);
-    if (!World_AddNode(world, inNode)) {
-        scprintf("mysterious failure in Node_RemoveID\n");
-        Node_Delete(inNode);
-        // enums are uncatchable. must throw an int.
-        int err = kSCErr_Failed; // shouldn't happen..
-        throw err;
-    }
-
-    // inWorld->hw->mRecentID = id;
 }
 
 // delete a node
